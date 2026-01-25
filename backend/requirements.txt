@@ -1,3 +1,4 @@
+# 4postle Vulnerability Scanner Backend Dependencies
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 python-dotenv==1.0.0
@@ -11,16 +12,70 @@ passlib[bcrypt]==1.7.4
 python-multipart==0.0.6
 celery==5.3.4
 redis==5.0.1
-python-nmap==0.7.1
+
+# HTTP and Network Libraries
+aiohttp==3.9.1
 requests==2.31.0
+httpx==0.25.2
+urllib3==2.1.0
+
+# HTML and XML Parsing
 beautifulsoup4==4.12.2
-python-whois==0.8.0
+lxml==4.9.3
+
+# DNS and Network Tools
 dnspython==2.4.2
-sublist3r==1.2.0
-python-nmap==0.7.1
-nmap==0.0.1
-python-nmap==0.7.1
-sqlalchemy-utils==0.41.1
-python-owasp-zap-v2.4==0.0.20
+python-whois==0.8.0
+
+# Security and Vulnerability Scanning
 bandit==1.7.5
 safety==2.3.5
+python-owasp-zap-v2.4==0.0.20
+
+# Database and Utilities
+sqlalchemy-utils==0.41.1
+click==8.1.7
+pyyaml==6.0.1
+jinja2==3.1.2
+
+# Async and Concurrency
+asyncio-mqtt==0.16.1
+websockets==12.0
+
+# Reporting and Export
+reportlab==4.0.7
+weasyprint==60.2
+markdown==3.5.1
+
+# Data Processing
+pandas==2.1.4
+numpy==1.25.2
+
+# Cryptography and Security
+cryptography==41.0.8
+bcrypt==4.1.2
+
+# Logging and Monitoring
+structlog==23.2.0
+prometheus-client==0.19.0
+
+# Development and Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+black==23.11.0
+flake8==6.1.0
+mypy==1.7.1
+
+# External Tool Dependencies (require manual installation)
+# These tools need to be installed separately on the system:
+# - subfinder (https://github.com/projectdiscovery/subfinder)
+# - amass (https://github.com/OWASP/Amass)
+# - httpx (https://github.com/projectdiscovery/httpx)
+# - naabu (https://github.com/projectdiscovery/naabu)
+# - nuclei (https://github.com/projectdiscovery/nuclei)
+# - ffuf (https://github.com/ffuf/ffuf)
+# - dalfox (https://github.com/hahwul/dalfox)
+# - sqlmap (https://github.com/sqlmapproject/sqlmap)
+# - paramspider (https://github.com/devanshbatham/ParamSpider)
+# - dnsx (https://github.com/projectdiscovery/dnsx)
