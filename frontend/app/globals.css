@@ -1,0 +1,130 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 0%;
+    --foreground: 142 76% 36%;
+    --card: 0 0% 11%;
+    --card-foreground: 142 76% 36%;
+    --popover: 0 0% 11%;
+    --popover-foreground: 142 76% 36%;
+    --primary: 142 76% 36%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 0 0% 17%;
+    --secondary-foreground: 142 76% 36%;
+    --muted: 0 0% 17%;
+    --muted-foreground: 142 71% 47%;
+    --accent: 0 0% 17%;
+    --accent-foreground: 142 76% 36%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 0%;
+    --border: 142 76% 36%;
+    --input: 0 0% 17%;
+    --ring: 142 76% 36%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 0 0% 0%;
+    --foreground: 142 76% 36%;
+    --card: 0 0% 11%;
+    --card-foreground: 142 76% 36%;
+    --popover: 0 0% 11%;
+    --popover-foreground: 142 76% 36%;
+    --primary: 142 76% 36%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 0 0% 17%;
+    --secondary-foreground: 142 76% 36%;
+    --muted: 0 0% 17%;
+    --muted-foreground: 142 71% 47%;
+    --accent: 0 0% 17%;
+    --accent-foreground: 142 76% 36%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 0%;
+    --border: 142 76% 36%;
+    --input: 0 0% 17%;
+    --ring: 142 76% 36%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Courier New', monospace;
+  }
+}
+
+@layer components {
+  .cyber-border {
+    @apply border border-green-500/30 shadow-[0_0_10px_rgba(34,197,94,0.3)];
+  }
+  
+  .cyber-glow {
+    @apply shadow-[0_0_20px_rgba(34,197,94,0.5)];
+  }
+  
+  .cyber-text {
+    @apply text-green-400 drop-shadow-[0_0_5px_rgba(34,197,94,0.5)];
+  }
+  
+  .terminal-cursor {
+    @apply animate-pulse bg-green-400;
+  }
+  
+  .scan-line {
+    @apply bg-gradient-to-r from-transparent via-green-400 to-transparent;
+    animation: scan 2s linear infinite;
+  }
+}
+
+@keyframes scan {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(34, 197, 94, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.8), 0 0 30px rgba(34, 197, 94, 0.4);
+  }
+}
+
+.cyber-button {
+  @apply relative overflow-hidden bg-black border border-green-500 text-green-400 px-6 py-2 rounded transition-all duration-300 hover:bg-green-900 hover:border-green-400 hover:text-green-300;
+}
+
+.cyber-button::before {
+  content: '';
+  @apply absolute inset-0 bg-gradient-to-r from-transparent via-green-400/20 to-transparent -translate-x-full transition-transform duration-500;
+}
+
+.cyber-button:hover::before {
+  @apply translate-x-full;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  @apply bg-gray-900;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  @apply bg-green-600 rounded;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  @apply bg-green-500;
+}
