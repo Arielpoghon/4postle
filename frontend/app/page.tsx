@@ -2,88 +2,161 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Shield, Activity, AlertTriangle, CheckCircle, XCircle, Clock, Target, Lock, Bug, Globe, Ban, Play, Settings, Terminal } from 'lucide-react';
+import { apiService, type ScanRequest, type ScanStatus, type Vulnerability, type Asset } from '../lib/api';
 
-interface Vulnerability {
-  id: string;
-  severity: 'informational' | 'low' | 'medium' | 'high' | 'critical';
-  title: string;
-  description: string;
-  count: number;
-}
-
-interface ScanStatus {
-  state: 'idle' | 'scanning' | 'finished' | 'error';
-  progress: number;
-  logs: string[];
-}
-
-interface TargetScope {
-  target: string;
-  inScope: string[];
-  outOfScope: string[];
+interface WebSocketProgress {
+  scan_id: string;
+  phase: string;
+  phase_progress: number;
+  total_progress: number;
+  current_task: string;
+  assets_discovered: number;
+  vulnerabilities_found: number;
+  tools_running: string[];
 }
 
 export default function Home() {
-  const [scanStatus, setScanStatus] = useState<ScanStatus>({
-    state: 'idle',
-    progress: 0,
-    logs: []
-  });
-
-  const [vulnerabilities, setVulnerabilities] = useState<Vulnerability[]>([
-    { id: '1', severity: 'critical', title: 'SQL Injection', description: 'Critical SQL injection vulnerability found', count: 3 },
-    { id: '2', severity: 'high', title: 'XSS Vulnerability', description: 'Cross-site scripting vulnerability', count: 5 },
-    { id: '3', severity: 'medium', title: 'CSRF Token Missing', description: 'Cross-site request forgery protection missing', count: 2 },
-    { id: '4', severity: 'low', title: 'Information Disclosure', description: 'Sensitive information exposed', count: 8 },
-    { id: '5', severity: 'informational', title: 'Missing Security Headers', description: 'Security headers not configured', count: 4 }
-  ]);
-
-  const [targetScope, setTargetScope] = useState<TargetScope>({
+  const [scanStatus, setScanStatus] = useState<ScanStatus | null>(null);
+  const [vulnerabilities, setVulnerabilities] = useState<Vulnerability[]>([]);
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [targetScope, setTargetScope] = useState({
     target: '',
-    inScope: [],
-    outOfScope: []
+    inScope: [''],
+    outOfScope: ['']
   });
-
   const [isScanning, setIsScanning] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [currentScanId, setCurrentScanId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [logs, setLogs] = useState<string[]>([]);
 
-  const startScan = () => {
-    if (!targetScope.target.trim()) {
-      alert('Please enter a target URL or IP address');
+  // WebSocket connection for real-time updates
+  useEffect(() => {
+    if (currentScanId && isScanning) {
+      const ws = apiService.createWebSocket(currentScanId);
+      
+      ws.onopen = () => {
+        console.log('WebSocket connected for scan:', currentScanId);
+      };
+      
+      ws.onmessage = (event) => {
+        try {
+          const progress: WebSocketProgress = JSON.parse(event.data);
+          
+          // Update scan status
+          setScanStatus({
+            scan_id: progress.scan_id,
+            target: targetScope.target,
+            status: 'running',
+            current_phase: progress.phase,
+            progress: progress.total_progress,
+            assets_discovered: progress.assets_discovered,
+            vulnerabilities_found: progress.vulnerabilities_found,
+            current_task: progress.current_task,
+            tools_running: progress.tools_running
+          });
+          
+          // Add log entry
+          const logEntry = `[${new Date().toLocaleTimeString()}] ${apiService.formatPhase(progress.phase)}: ${progress.current_task} (${Math.floor(progress.total_progress)}%)`;
+          const hackerLog = `[${new Date().toLocaleTimeString()}] >> ${progress.current_task.toUpperCase()} [${Math.floor(progress.total_progress)}%]`;
+          setLogs(prev => [...prev, hackerLog]);
+          
+          // Check if scan completed
+          if (progress.total_progress >= 100) {
+            ws.close();
+            setIsScanning(false);
+            setShowResults(true);
+            loadScanResults(currentScanId);
+          }
+        } catch (error) {
+          console.error('WebSocket message error:', error);
+        }
+      };
+      
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        setError('WebSocket connection error');
+      };
+      
+      ws.onclose = () => {
+        console.log('WebSocket disconnected');
+      };
+      
+      return () => {
+        ws.close();
+      };
+    }
+  }, [currentScanId, isScanning, targetScope.target]);
+
+  const loadScanResults = async (scanId: string) => {
+    try {
+      const results = await apiService.getScanResults(scanId);
+      setVulnerabilities(results.vulnerabilities);
+      setAssets(results.assets);
+      
+      const finalLog = `[${new Date().toLocaleTimeString()}] >> SCAN COMPLETE! VULNERABILITIES IDENTIFIED: ${results.vulnerabilities.length} | ASSETS MAPPED: ${results.assets.length}`;
+      setLogs(prev => [...prev, finalLog]);
+    } catch (error) {
+      console.error('Error loading scan results:', error);
+      setError('Failed to load scan results');
+    }
+  };
+
+  const startScan = async () => {
+    // Validate target
+    const validation = apiService.validateTarget(targetScope.target);
+    if (!validation.valid) {
+      setError(validation.error || 'Invalid target');
       return;
     }
-
+    
+    setError(null);
     setIsScanning(true);
     setShowResults(false);
-    setScanStatus({ 
-      state: 'scanning', 
-      progress: 0, 
-      logs: [
-        `[${new Date().toLocaleTimeString()}] Initializing scan...`,
-        `[${new Date().toLocaleTimeString()}] Target: ${targetScope.target}`,
-        `[${new Date().toLocaleTimeString()}] Starting vulnerability assessment...`
-      ] 
-    });
+    setVulnerabilities([]);
+    setAssets([]);
+    setLogs([`[${new Date().toLocaleTimeString()}] >> INITIALIZING SCAN PROTOCOL...`, `[${new Date().toLocaleTimeString()}] >> TARGET LOCKED: ${targetScope.target.toUpperCase()}`, `[${new Date().toLocaleTimeString()}] >> DEPLOYING VULNERABILITY ASSESSMENT SUITE...`]);
     
-    const interval = setInterval(() => {
-      setScanStatus(prev => {
-        const newProgress = Math.min(prev.progress + Math.random() * 15, 100);
-        const newLogs = [...prev.logs, `[${new Date().toLocaleTimeString()}] Scanning... ${Math.floor(newProgress)}%`];
-        
-        if (newProgress >= 100) {
-          clearInterval(interval);
-          setIsScanning(false);
-          setShowResults(true);
-          return { 
-            state: 'finished', 
-            progress: 100, 
-            logs: [...newLogs, `[${new Date().toLocaleTimeString()}] Scan completed successfully!`, `[${new Date().toLocaleTimeString()}] Found ${totalVulnerabilities} vulnerabilities`] 
-          };
+    try {
+      // Create scan request
+      const scanRequest: ScanRequest = {
+        target: targetScope.target,
+        scope: {
+          in_scope: targetScope.inScope.filter(rule => rule.trim() !== ''),
+          out_of_scope: targetScope.outOfScope.filter(rule => rule.trim() !== ''),
+          max_depth: 3
+        },
+        options: {
+          passive_only: false,
+          aggressive_mode: false,
+          timeout: 3600
         }
-        
-        return { ...prev, progress: newProgress, logs: newLogs };
+      };
+      
+      // Start scan
+      const scanResponse = await apiService.createScan(scanRequest);
+      setCurrentScanId(scanResponse.scan_id);
+      
+      // Initial status
+      setScanStatus({
+        scan_id: scanResponse.scan_id,
+        target: targetScope.target,
+        status: 'running',
+        current_phase: 'passive_reconnaissance',
+        progress: 0,
+        assets_discovered: 0,
+        vulnerabilities_found: 0,
+        current_task: 'Initializing scan...',
+        tools_running: ['subfinder', 'amass', 'crtsh', 'waybackurls', 'httpx-tech']
       });
-    }, 500);
+      
+      setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Scan started with ID: ${scanResponse.scan_id}`]);
+      
+    } catch (error) {
+      console.error('Error starting scan:', error);
+      setError('Failed to start scan');
+      setIsScanning(false);
+    }
   };
 
   const addInScopeRule = () => {
@@ -128,18 +201,36 @@ export default function Home() {
     }));
   };
 
+  // Calculate vulnerability counts
+  const totalVulnerabilities = vulnerabilities.length;
+  
+  const vulnerabilityCounts = useMemo(() => {
+    return apiService.countVulnerabilitiesBySeverity(vulnerabilities);
+  }, [vulnerabilities]);
+
+  // Format vulnerabilities for display
+  const displayVulnerabilities = useMemo(() => {
+    return [
+      { id: 'critical', severity: 'critical' as const, title: 'Critical', description: 'Critical vulnerabilities requiring immediate attention', count: vulnerabilityCounts.critical || 0 },
+      { id: 'high', severity: 'high' as const, title: 'High', description: 'High severity vulnerabilities', count: vulnerabilityCounts.high || 0 },
+      { id: 'medium', severity: 'medium' as const, title: 'Medium', description: 'Medium severity vulnerabilities', count: vulnerabilityCounts.medium || 0 },
+      { id: 'low', severity: 'low' as const, title: 'Low', description: 'Low severity vulnerabilities', count: vulnerabilityCounts.low || 0 },
+      { id: 'info', severity: 'info' as const, title: 'Informational', description: 'Informational findings', count: vulnerabilityCounts.info || 0 }
+    ];
+  }, [vulnerabilityCounts]);
+
   const getStatusIcon = () => {
-    switch (scanStatus.state) {
-      case 'idle':
-        return <Clock className="w-6 h-6 text-gray-500" />;
-      case 'scanning':
-        return <Activity className="w-6 h-6 text-green-400 animate-pulse" />;
-      case 'finished':
-        return <CheckCircle className="w-6 h-6 text-green-400" />;
+    if (!scanStatus) return <Shield className="w-6 h-6 text-green-400 drop-shadow-[0_0_5px_rgba(34,197,94,0.5)]" />;
+    
+    switch (scanStatus.status) {
+      case 'running':
+        return <Activity className="w-6 h-6 text-green-400 drop-shadow-[0_0_5px_rgba(34,197,94,0.5)] animate-pulse" />;
+      case 'completed':
+        return <CheckCircle className="w-6 h-6 text-green-400 drop-shadow-[0_0_5px_rgba(34,197,94,0.5)]" />;
       case 'error':
-        return <XCircle className="w-6 h-6 text-red-400" />;
+        return <XCircle className="w-6 h-6 text-red-400 drop-shadow-[0_0_5px_rgba(239,68,68,0.5)]" />;
       default:
-        return <Clock className="w-6 h-6 text-gray-500" />;
+        return <Shield className="w-6 h-6 text-green-400 drop-shadow-[0_0_5px_rgba(34,197,94,0.5)]" />;
     }
   };
 
@@ -160,15 +251,13 @@ export default function Home() {
     }
   };
 
-  const totalVulnerabilities = vulnerabilities.reduce((sum, vuln) => sum + vuln.count, 0);
-
   const [hoveredSlice, setHoveredSlice] = useState<string | null>(null);
 
   // Pie chart data processing
   const pieChartData = useMemo(() => {
     if (totalVulnerabilities === 0) return [];
     
-    return vulnerabilities
+    return displayVulnerabilities
       .filter(vuln => vuln.count > 0)
       .map(vuln => ({
         ...vuln,
@@ -178,10 +267,10 @@ export default function Home() {
           high: '#f97316',
           medium: '#eab308',
           low: '#84cc16',
-          informational: '#22c55e'
+          info: '#22c55e'
         }[vuln.severity]
       }));
-  }, [vulnerabilities, totalVulnerabilities]);
+  }, [displayVulnerabilities, totalVulnerabilities]);
 
   return (
     <div className="min-h-screen bg-black text-green-400 font-mono">
@@ -338,12 +427,13 @@ export default function Home() {
                 <div className="flex-1 h-px bg-gradient-to-r from-green-500/50 to-transparent"></div>
               </div>
               <span className={`px-4 py-2 rounded-full text-sm font-semibold border tracking-wider ${
-                scanStatus.state === 'scanning' ? 'border-green-400 text-green-400 animate-pulse shadow-[0_0_15px_rgba(34,197,94,0.5)]' :
-                scanStatus.state === 'finished' ? 'border-green-400 text-green-400 shadow-[0_0_10px_rgba(34,197,94,0.3)]' :
-                scanStatus.state === 'error' ? 'border-red-400 text-red-400 shadow-[0_0_10px_rgba(239,68,68,0.3)]' :
+                !scanStatus ? 'border-gray-500 text-gray-500' :
+                scanStatus.status === 'running' ? 'border-green-400 text-green-400 animate-pulse shadow-[0_0_15px_rgba(34,197,94,0.5)]' :
+                scanStatus.status === 'completed' ? 'border-green-400 text-green-400 shadow-[0_0_10px_rgba(34,197,94,0.3)]' :
+                scanStatus.status === 'error' ? 'border-red-400 text-red-400 shadow-[0_0_10px_rgba(239,68,68,0.3)]' :
                 'border-gray-500 text-gray-500'
               }`}>
-                {scanStatus.state.toUpperCase()}
+                {!scanStatus ? 'IDLE' : scanStatus.status.toUpperCase()}
               </span>
             </div>
             
@@ -351,12 +441,12 @@ export default function Home() {
             <div className="mb-6">
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-green-400/80 font-medium">PROGRESS</span>
-                <span className="text-green-400 font-bold">{Math.floor(scanStatus.progress)}%</span>
+                <span className="text-green-400 font-bold">{scanStatus ? Math.floor(scanStatus.progress) : 0}%</span>
               </div>
               <div className="w-full bg-black/60 rounded-full h-4 overflow-hidden border border-green-500/20">
                 <div 
                   className="h-full bg-gradient-to-r from-green-600 via-green-500 to-green-400 transition-all duration-500 ease-out relative overflow-hidden"
-                  style={{ width: `${scanStatus.progress}%` }}
+                  style={{ width: `${scanStatus ? scanStatus.progress : 0}%` }}
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
                 </div>
@@ -364,19 +454,28 @@ export default function Home() {
             </div>
 
             {/* Scan Logs */}
-            <div className="bg-black/80 rounded-lg p-4 h-48 overflow-y-auto scrollbar-thin border border-green-500/20">
+            <div className="bg-black/90 rounded-lg p-4 h-48 overflow-y-auto scrollbar-thin border border-green-500/30 shadow-[inset_0_0_20px_rgba(34,197,94,0.1)]">
               <div className="flex items-center space-x-2 mb-3">
                 <Terminal className="w-4 h-4 text-green-400 drop-shadow-[0_0_5px_rgba(34,197,94,0.5)]" />
-                <h3 className="text-sm font-semibold text-green-400 tracking-wider">SCAN LOGS</h3>
-                <div className="flex-1 h-px bg-gradient-to-r from-green-500/30 to-transparent"></div>
+                <h3 className="text-sm font-bold text-green-400 tracking-wider drop-shadow-[0_0_3px_rgba(34,197,94,0.5)]">SCAN LOGS</h3>
+                <div className="flex-1 h-px bg-gradient-to-r from-green-500/50 to-transparent"></div>
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse drop-shadow-[0_0_5px_rgba(34,197,94,0.8)]"></div>
               </div>
-              <div className="space-y-1 text-xs">
-                {scanStatus.logs.map((log, index) => (
-                  <div key={index} className="flex items-start space-x-2 font-mono">
-                    <span className="text-green-400 drop-shadow-[0_0_3px_rgba(34,197,94,0.5)]">{'>'}</span>
-                    <span className="text-green-300/90">{log}</span>
+              <div className="space-y-1 text-xs font-mono">
+                {logs.map((log, index) => (
+                  <div key={index} className="flex items-start space-x-2 group">
+                    <span className="text-green-500 drop-shadow-[0_0_3px_rgba(34,197,94,0.8)] font-bold select-none">{'>'}</span>
+                    <span className="text-green-300 text-green-300/95 drop-shadow-[0_0_2px_rgba(34,197,94,0.4)] break-all">
+                      {log}
+                    </span>
+                    <div className="flex-1 h-px bg-gradient-to-r from-transparent via-green-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                   </div>
                 ))}
+                {logs.length === 0 && (
+                  <div className="text-green-500/50 italic text-center py-4">
+                    <span className="drop-shadow-[0_0_3px_rgba(34,197,94,0.3)]">Awaiting scan initiation...</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
