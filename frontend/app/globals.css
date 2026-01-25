@@ -53,9 +53,107 @@
   * {
     @apply border-border;
   }
+  
   body {
-    @apply bg-background text-foreground;
-    font-family: 'Courier New', monospace;
+    @apply bg-black text-green-400;
+    font-family: 'Courier New', 'Fira Code', 'Consolas', monospace;
+    color: #22c55e !important;
+    text-shadow: 0 0 5px rgba(34, 197, 94, 0.5) !important;
+    background-color: #000000 !important;
+  }
+  
+  /* Force all text to be green - MAXIMUM OVERRIDE */
+  * {
+    color: #22c55e !important;
+    text-shadow: 0 0 5px rgba(34, 197, 94, 0.5) !important;
+  }
+  
+  /* Specific element overrides */
+  h1, h2, h3, h4, h5, h6 {
+    color: #22c55e !important;
+    text-shadow: 0 0 8px rgba(34, 197, 94, 0.7) !important;
+  }
+  
+  p, span, div, button, input, textarea, select, label, strong, em, i, b {
+    color: #22c55e !important;
+    text-shadow: 0 0 5px rgba(34, 197, 94, 0.5) !important;
+  }
+  
+  /* Links */
+  a {
+    color: #86efac !important;
+    text-shadow: 0 0 5px rgba(134, 239, 172, 0.5) !important;
+  }
+  
+  a:hover {
+    color: #bbf7d0 !important;
+    text-shadow: 0 0 10px rgba(187, 247, 208, 0.8) !important;
+  }
+  
+  /* Input fields */
+  input, textarea, select {
+    background-color: #000000 !important;
+    border-color: #22c55e !important;
+    color: #22c55e !important;
+    box-shadow: 0 0 10px rgba(34, 197, 94, 0.3) !important;
+  }
+  
+  input::placeholder, textarea::placeholder {
+    color: #86efac !important;
+    opacity: 0.6 !important;
+  }
+  
+  /* Buttons */
+  button {
+    background-color: #000000 !important;
+    border-color: #22c55e !important;
+    color: #22c55e !important;
+    box-shadow: 0 0 10px rgba(34, 197, 94, 0.3) !important;
+  }
+  
+  button:hover {
+    background-color: #14532d !important;
+    border-color: #86efac !important;
+    color: #86efac !important;
+    box-shadow: 0 0 15px rgba(134, 239, 172, 0.5) !important;
+  }
+  
+  /* Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px !important;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: #000000 !important;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: #22c55e !important;
+    border-radius: 4px !important;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: #86efac !important;
+  }
+  
+  /* Additional aggressive overrides */
+  html {
+    background-color: #000000 !important;
+  }
+  
+  /* Override any potential white text */
+  [class*="text-white"], [class*="text-gray"], [class*="text-slate"], [class*="text-zinc"] {
+    color: #22c55e !important;
+  }
+  
+  /* Override any potential non-green borders */
+  [class*="border"], [class*="border-"] {
+    border-color: #22c55e !important;
+  }
+  
+  /* Override any potential non-green backgrounds */
+  [class*="bg-white"], [class*="bg-gray"], [class*="bg-slate"], [class*="bg-zinc"] {
+    background-color: #000000 !important;
   }
 }
 

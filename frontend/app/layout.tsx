@@ -19,8 +19,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} font-mono bg-black text-green-400 antialiased`}>
+    <html lang="en" suppressHydrationWarning className="bg-black">
+      <body className={`${inter.variable} font-mono bg-black text-green-400 antialiased`} style={{backgroundColor: '#000000', color: '#22c55e'}}>
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
