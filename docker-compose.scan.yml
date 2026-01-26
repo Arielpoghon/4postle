@@ -1,0 +1,19 @@
+services:
+  scan4all:
+    build:
+      context: .
+      dockerfile: docker/scan4all.Dockerfile
+    image: 4postle-scan4all
+    entrypoint: ["bash", "-lc", "sleep infinity"]
+
+  scan-ui:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.scan
+    ports:
+      - "8000:8000"
+    depends_on:
+      - scan4all
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
